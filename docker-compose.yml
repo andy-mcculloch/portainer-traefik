@@ -1,0 +1,40 @@
+version: '3.7'
+
+services:
+  reverse-proxy:
+    image: traefik:2.1
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - web
+    volumes:
+            - "/var/run/docker.sock:/var/run/docker.sock:ro"
+            - "/opt/traefik/traefik.yml:/traefik.yml"
+            - "/opt/traefik/certs/:/certs/"
+            - "/opt/traefik/logs/:/logs/"
+    container_name: reverse-proxy
+    environment:
+      # Cloudflare API details for Let's Encrypt
+      - CF_API_EMAIL=name@example.com
+      - CF_API_KEY=1234567890
+      - CF_DNS_API_TOKEN=1234567890
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+ 
+      - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:[a-z-.]+}`)"
+      - "traefik.http.routers.http-catchall.entrypoints=web"
+      - "traefik.http.routers.http-catchall.middlewares=https_redirect"
+
+      - "traefik.http.routers.apisecure.service=api@internal"
+      - "traefik.http.routers.apisecure.rule=Host(`traefik.example.com`)"
+      - "traefik.http.routers.apisecure.entrypoints=websecure"
+      - "traefik.http.routers.apisecure.tls.certresolver=le_dns"
+        
+      - "traefik.http.middlewares.https_redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https_redirect.redirectscheme.permanent=true"
+networks:
+  web:
+    external: true
