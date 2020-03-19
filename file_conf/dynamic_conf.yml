@@ -1,0 +1,16 @@
+http:
+  routers:
+    nas-router:
+      # won't listen to entry point web
+      entryPoints:
+        - "websecure"
+      rule: "Host(`nas.example.co.uk`)"
+      tls:
+        certResolver: le_dns
+      service: "nas-service"
+  services:
+    nas-service:
+      loadBalancer:
+        servers:
+          - url: "http://1.2.3.4:5000/"
+
