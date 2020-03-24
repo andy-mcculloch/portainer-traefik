@@ -12,15 +12,23 @@ providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
+  file:
+    filename: "/file_conf/dynamic_conf.yml"
+    watch: true
 
 log:
   filePath: "/logs/traefik.log"
-  level: ERROR
+  #  level: DEBUG
+
+serversTransport:
+  insecureSkipVerify: true
+  #  rootCAs:
+  #    - mccullonas_ca_root_cert.crt 
 
 certificatesResolvers:
   le_dns:
     acme:
-      email: "name@example.com"
+      email: "email@example.co.uk"
       storage: "/certs/acme.json"
       caServer: "https://acme-v02.api.letsencrypt.org/directory"
       dnsChallenge:

@@ -4,16 +4,20 @@ services:
   reverse-proxy:
     image: traefik:2.1
     restart: always
+    dns: 1.2.3.4
+    dns_search: internal.example.co.uk
     ports:
       - 80:80
       - 443:443
     networks:
       - web
+      - traefik_proxy
     volumes:
             - "/var/run/docker.sock:/var/run/docker.sock:ro"
             - "/opt/traefik/traefik.yml:/traefik.yml"
             - "/opt/traefik/certs/:/certs/"
             - "/opt/traefik/logs/:/logs/"
+            - "/opt/traefik/file_conf/:/file_conf/"
     container_name: reverse-proxy
     environment:
       # Cloudflare API details for Let's Encrypt
@@ -29,12 +33,59 @@ services:
       - "traefik.http.routers.http-catchall.middlewares=https_redirect"
 
       - "traefik.http.routers.apisecure.service=api@internal"
-      - "traefik.http.routers.apisecure.rule=Host(`traefik.example.com`)"
+      - "traefik.http.routers.apisecure.rule=Host(`external.example.co.uk`)"
       - "traefik.http.routers.apisecure.entrypoints=websecure"
       - "traefik.http.routers.apisecure.tls.certresolver=le_dns"
-        
+        #      - "traefik.http.routers.apisecure.middlewares=oauth"
+
       - "traefik.http.middlewares.https_redirect.redirectscheme.scheme=https"
       - "traefik.http.middlewares.https_redirect.redirectscheme.permanent=true"
+
+ ## OAuth - Forward Authentication
+  oauth:
+    image: thomseddon/traefik-forward-auth
+    container_name: oauth
+    hostname: oauth
+    restart: always
+    networks:
+      - web
+      - traefik_proxy
+    environment:
+      - PROVIDERS_GOOGLE_CLIENT_ID=
+      - PROVIDERS_GOOGLE_CLIENT_SECRET=
+      - SECRET=
+      - COOKIE_DOMAIN=example.co.uk
+      - INSECURE_COOKIE="false"
+      - AUTH_HOST=oauth.example.co.uk
+      - URL_PATH=/_oauth
+      - WHITELIST=email@example.co.uk
+      - LOG_LEVEL=info
+      - LIFETIME=2592000 # 30 days
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.http.services.oauth.loadbalancer.server.port=4181"
+      - "traefik.http.services.oauth.loadbalancer.passhostheader=true"
+      - "traefik.http.routers.oauth.rule=Host(`oauth.example.co.uk`)"
+      - "traefik.http.routers.oauth.entrypoints=websecure"
+      - "traefik.http.routers.oauth.tls.certresolver=le_dns"
+      - "traefik.http.middlewares.oauth.headers.sslforcehost=true"
+      - "traefik.http.middlewares.oauth.headers.customresponseheaders.X-Robots-Tag=noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
+      - "traefik.http.middlewares.oauth.headers.sslredirect=true"
+      - "traefik.http.middlewares.oauth.headers.browserxssfilter=true"
+      - "traefik.http.middlewares.oauth.headers.contenttypenosniff=true"
+      - "traefik.http.middlewares.oauth.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.oauth.headers.STSSeconds=315360000"
+      - "traefik.http.middlewares.oauth.headers.STSIncludeSubdomains=true"
+      - "traefik.http.middlewares.oauth.headers.STSPreload=true"
+      - "traefik.http.middlewares.oauth.headers.frameDeny=true"
+      - "traefik.http.middlewares.oauth.forwardauth.address=http://oauth:4181"
+      - "traefik.http.middlewares.oauth.forwardauth.authresponseheaders=X-Forwarded-User"
+      - "traefik.http.middlewares.oauth.forwardauth.trustforwardheader=true"
+
 networks:
   web:
     external: true
+  traefik_proxy:
+    external: true
+
