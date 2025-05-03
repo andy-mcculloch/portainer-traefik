@@ -41,13 +41,13 @@ http:
       tls:
         certResolver: le_dns
       service: fluidd-service
-    immich-router:
-      entryPoints:
-        - websecure
-      rule: Host(`immich.${DOMAIN}`)
-      tls:
-        certResolver: le_dns
-      service: immich-service
+    # immich-router:
+    #   entryPoints:
+    #     - websecure
+    #   rule: Host(`immich.${DOMAIN}`)
+    #   tls:
+    #     certResolver: le_dns
+    #   service: immich-service
     nas-router:
       entryPoints:
         - websecure
@@ -73,10 +73,10 @@ http:
       loadBalancer:
         servers:
           - url: "http://${FLUIDD_IP}/"
-    immich-service:
-      loadBalancer:
-        servers:
-          - url: "http://${IMMICH_IP}/"
+    # immich-service:
+    #   loadBalancer:
+    #     servers:
+    #       - url: "http://${IMMICH_IP}/"
     nas-service:
       loadBalancer:
         servers:
