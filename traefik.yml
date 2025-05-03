@@ -18,9 +18,9 @@ providers:
       #    filename: "/file_conf/dynamic_conf.yml"
       #    watch: true
 
-log:
-  level: WARN
-  filePath: /logs/traefik.log
+# log:
+#   level: WARN
+#   filePath: /logs/traefik.log
 
 serversTransport:
   insecureSkipVerify: true
