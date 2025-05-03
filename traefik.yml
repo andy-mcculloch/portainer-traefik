@@ -1,5 +1,7 @@
 api:
   dashboard: true
+  insecure: true
+  # debug: false # Optional can be Enabled if needed for troubleshooting
 
 entryPoints:
   web:
@@ -10,28 +12,27 @@ entryPoints:
 
 providers:
   docker:
-    endpoint: "unix:///var/run/docker.sock"
+    endpoint: unix:///var/run/docker.sock
     exposedByDefault: false
-  file:
-    filename: "/file_conf/dynamic_conf.yml"
-    watch: true
+      #  file:
+      #    filename: "/file_conf/dynamic_conf.yml"
+      #    watch: true
 
 log:
-  filePath: "/logs/traefik.log"
-  #  level: DEBUG
+  level: WARN
+  filePath: /logs/traefik.log
 
 serversTransport:
   insecureSkipVerify: true
-  #  rootCAs:
-  #    - mccullonas_ca_root_cert.crt 
 
 certificatesResolvers:
   le_dns:
     acme:
-      email: "email@example.co.uk"
-      storage: "/certs/acme.json"
-      caServer: "https://acme-v02.api.letsencrypt.org/directory"
+      email: ${CF_API_EMAIL}
+      storage: /letsencrypt/acme.json
+      caServer: https://acme-v02.api.letsencrypt.org/directory
       dnsChallenge:
-        provider: "cloudflare"
-        delayBeforeCheck: 120
+        provider: cloudflare
+        propagation:
+          delayBeforeChecks: 120
 

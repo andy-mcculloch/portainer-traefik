@@ -1,16 +1,90 @@
 http:
   routers:
-    test-router:
-      # won't listen to entry point web
+    http-catchall:
+      rule: hostregexp(`{host:[a-z-.]+}`)
+      entrypoints:
+        - web
+      middlewares:
+        - https_redirect
+    apisecure:
+      rule: Host(`traefik.${DOMAIN}`)
+      service: api@internal
       entryPoints:
-        - "websecure"
-      rule: "Host(`test.example.co.uk)"
+        - websecure
       tls:
         certResolver: le_dns
-      service: "test-service"
+    ovms-router:
+      entryPoints:
+        - websecure
+      rule: Host(`ovms.${DOMAIN}`)
+      tls:
+        certResolver: le_dns
+      service: ovms-service
+    wallpanel-router:
+      entryPoints:
+        - websecure
+      rule: Host(`wallpanel.${DOMAIN}`)
+      tls:
+        certResolver: le_dns
+      service: wallpanel-service
+    wallpanel2-router:
+      entryPoints:
+        - websecure
+      rule: Host(`wallpanel2.${DOMAIN}`)
+      tls:
+        certResolver: le_dns
+      service: wallpanel2-service
+    fluidd-router:
+      entryPoints:
+        - websecure
+      rule: Host(`fluidd.${DOMAIN}`)
+      tls:
+        certResolver: le_dns
+      service: fluidd-service
+    immich-router:
+      entryPoints:
+        - websecure
+      rule: Host(`immich.${DOMAIN}`)
+      tls:
+        certResolver: le_dns
+      service: immich-service
+    nas-router:
+      entryPoints:
+        - websecure
+      rule: Host(`nas.${DOMAIN}`)
+      tls:
+        certResolver: le_dns
+      service: nas-service
+
   services:
-    test-service:
+    ovms-service:
       loadBalancer:
         servers:
-          - url: "http://1.2.3.4:4321/"
+          - url: "http://${OVMS_IP}/"
+    wallpanel-service:
+      loadBalancer:
+        servers:
+          - url: "http://${WALLPANEL_IP}/"
+    wallpanel2-service:
+      loadBalancer:
+        servers:
+          - url: "http://${WALLPANEL2_IP}/"
+    fluidd-service:
+      loadBalancer:
+        servers:
+          - url: "http://${FLUIDD_IP}/"
+    immich-service:
+      loadBalancer:
+        servers:
+          - url: "http://${IMMICH_IP}/"
+    nas-service:
+      loadBalancer:
+        servers:
+          - url: "http://${NAS_IP}/"
 
+  middlewares:
+    https_redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
+  
