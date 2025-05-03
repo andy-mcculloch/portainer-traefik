@@ -9,8 +9,8 @@ services:
     volumes:
       - "./letsencrypt:/letsencrypt"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - ./traefik.yml:/traefik.yml
-      - ./file_conf/:/file_conf/
+      - "./traefik.yml:/traefik.yml"
+      - "./file_conf/:/file_conf/"
 
 
   whoami:
