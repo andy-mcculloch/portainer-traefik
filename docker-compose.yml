@@ -2,6 +2,10 @@ services:
   traefik:
     image: traefik:v3.3
     container_name: traefik
+    environment:
+      - CF_API_EMAIL=${CF_API_EMAIL}
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+      - CF_API_KEY=${CF_API_KEY}
     command:
     # Logs
       - --log.level=WARN
@@ -23,7 +27,7 @@ services:
       - --certificatesresolvers.le_dns.acme.storage=/letsencrypt/acme.json
       - --certificatesresolvers.le_dns.acme.dnschallenge=true
       - --certificatesresolvers.le_dns.acme.dnschallenge.provider=cloudflare
-      - --certificatesresolvers.le_dns.acme.dnschallenge.delayBeforeCheck=120
+      - --certificatesresolvers.le_dns.acme.dnschallenge.delayBeforeChecks=120
     networks:
       - proxy
     ports:
