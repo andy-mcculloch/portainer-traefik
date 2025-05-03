@@ -6,13 +6,6 @@ http:
         - web
       middlewares:
         - https_redirect
-    apisecure:
-      rule: Host(`traefik2.${DOMAIN}`)
-      service: api@internal
-      entryPoints:
-        - websecure
-      tls:
-        certResolver: le_dns
     ovms-router:
       entryPoints:
         - websecure

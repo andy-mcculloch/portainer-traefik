@@ -41,7 +41,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./file_conf.yml:/file_conf.yml
     labels:
-      - "traefik.enable=true"
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)
+      - traefik.http.routers.dashboard.service=api@internal
+      - traefik.http.routers.whoami.entrypoints=websecure
+      - traefik.http.routers.whoami.tls.certresolver=le_dns
+      # - traefik.http.routers.dashboard.middlewares=traefik-auth
+      # - traefik.http.middlewares.traefik-auth.basicauth.users=xxx"
 
   whoami:
     image: "traefik/whoami"
