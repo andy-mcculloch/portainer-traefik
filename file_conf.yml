@@ -7,7 +7,7 @@ http:
       middlewares:
         - https_redirect
     apisecure:
-      rule: Host(`traefik.${DOMAIN}`)
+      rule: Host(`traefik2.${DOMAIN}`)
       service: api@internal
       entryPoints:
         - websecure
