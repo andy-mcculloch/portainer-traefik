@@ -1,23 +1,52 @@
 services:
   traefik:
-    image: "traefik:v3.3"
-    container_name: "traefik"
+    image: traefik:v3.3
+    container_name: traefik
+    command:
+    # Logs
+      - --log.level=WARN
+    # Dashboard
+      - --api.dashboard=true
+    #Providers
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/file_conf.yml
+    #Entrypoints
+      - --entryPoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entryPoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls=true
+      - --entrypoints.websecure.http.tls.certResolver=leresolver
+    #ACME Config
+      - --certificatesresolvers.leresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+      - --certificatesresolvers.leresolver.acme.email=${CF_API_EMAIL}
+      - --certificatesresolvers.leresolver.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.leresolver.acme.dnschallenge=true
+      - --certificatesresolvers.leresolver.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.leresolver.acme.dnschallenge.delayBeforeCheck=120
+    networks:
+      - proxy
     ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080"
+      - 80:80
+      - 443:443
+      - 8080:8080
     volumes:
-      - "./letsencrypt:/letsencrypt"
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "./traefik.yml:/traefik.yml"
-      - "./file_conf/:/file_conf/"
-
+      - ./letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./file_conf.yml:/file_conf.yml
+      
 
   whoami:
     image: "traefik/whoami"
     container_name: "simple-service"
+    networks:
+      - proxy
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.whoami.rule=Host(`whoami.${DOMAIN}`)"
       - "traefik.http.routers.whoami.entrypoints=websecure"
       - "traefik.http.routers.whoami.tls.certresolver=myresolver"       
+
+networks:
+  proxy:
+    external: true
