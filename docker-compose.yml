@@ -16,14 +16,14 @@ services:
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
       - --entryPoints.websecure.address=:443
       - --entrypoints.websecure.http.tls=true
-      - --entrypoints.websecure.http.tls.certResolver=leresolver
+      - --entrypoints.websecure.http.tls.certResolver=le_dns
     #ACME Config
-      - --certificatesresolvers.leresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
-      - --certificatesresolvers.leresolver.acme.email=${CF_API_EMAIL}
-      - --certificatesresolvers.leresolver.acme.storage=/letsencrypt/acme.json
-      - --certificatesresolvers.leresolver.acme.dnschallenge=true
-      - --certificatesresolvers.leresolver.acme.dnschallenge.provider=cloudflare
-      - --certificatesresolvers.leresolver.acme.dnschallenge.delayBeforeCheck=120
+      - --certificatesresolvers.le_dns.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+      - --certificatesresolvers.le_dns.acme.email=${CF_API_EMAIL}
+      - --certificatesresolvers.le_dns.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le_dns.acme.dnschallenge=true
+      - --certificatesresolvers.le_dns.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.le_dns.acme.dnschallenge.delayBeforeCheck=120
     networks:
       - proxy
     ports:
@@ -45,7 +45,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.whoami.rule=Host(`whoami.${DOMAIN}`)"
       - "traefik.http.routers.whoami.entrypoints=websecure"
-      - "traefik.http.routers.whoami.tls.certresolver=myresolver"       
+      - "traefik.http.routers.whoami.tls.certresolver=le_dns"       
 
 networks:
   proxy:
