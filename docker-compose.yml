@@ -22,7 +22,7 @@ services:
       - --entrypoints.websecure.http.tls=true
       - --entrypoints.websecure.http.tls.certResolver=le_dns
     #ACME Config
-      - --certificatesresolvers.le_dns.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+      # - --certificatesresolvers.le_dns.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
       - --certificatesresolvers.le_dns.acme.email=${CF_API_EMAIL}
       - --certificatesresolvers.le_dns.acme.storage=/letsencrypt/acme.json
       - --certificatesresolvers.le_dns.acme.dnschallenge=true
