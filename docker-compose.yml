@@ -1,30 +1,26 @@
+name: portainer-traefik
 services:
   traefik:
-    image: traefik:v3.3
     container_name: traefik
-    restart: always
+    image: traefik:v3.4
     environment:
       - CF_API_EMAIL=${CF_API_EMAIL}
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
       - CF_API_KEY=${CF_API_KEY}
     command:
     # Logs
-      - --log.level=DEBUG
+      - --log.level=WARN
     # Dashboard
       - --api=true
       - --api.dashboard=true
     #Providers
-      - --providers.docker.exposedbydefault=false
-      - --providers.file.directory=/file_conf.yml
+      - --providers.docker
     #Entrypoints
       - --entryPoints.web.address=:80
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entryPoints.web.http.redirections.entryPoint.to=websecure
+      - --entryPoints.web.http.redirections.entryPoint.scheme=https
       - --entryPoints.websecure.address=:443
-      - --entrypoints.websecure.http.tls=true
-      - --entrypoints.websecure.http.tls.certResolver=le_dns
     #ACME Config
-      # - --certificatesresolvers.le_dns.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
       - --certificatesresolvers.le_dns.acme.email=${CF_API_EMAIL}
       - --certificatesresolvers.le_dns.acme.storage=/letsencrypt/acme.json
       - --certificatesresolvers.le_dns.acme.dnschallenge=true
@@ -35,30 +31,105 @@ services:
     ports:
       - 80:80
       - 443:443
-      - 8080:8080
     volumes:
       - letsencrypt:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./file_conf.yml:/file_conf.yml
     labels:
+    # proxy dashboard config
       - traefik.enable=true
       - traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)
       - traefik.http.routers.dashboard.service=api@internal
-      - traefik.http.routers.whoami.entrypoints=websecure
-      - traefik.http.routers.whoami.tls.certresolver=le_dns
-      # - traefik.http.routers.dashboard.middlewares=traefik-auth
-      # - traefik.http.middlewares.traefik-auth.basicauth.users=xxx"
+      - traefik.http.routers.dashboard.entrypoints=websecure
+      - traefik.http.routers.dashboard.tls.certresolver=le_dns
+    # NAS Config
+      - traefik.http.routers.nas.rule=Host(`nas.${DOMAIN}`)
+      - traefik.http.routers.nas.service=nas
+      - traefik.http.routers.nas.entrypoints=websecure
+      - traefik.http.routers.nas.tls.certresolver=le_dns
+      - traefik.http.services.nas.loadBalancer.server.url=http://${NAS_IP}/
+    # OVMS Config
+      - traefik.http.routers.ovms.rule=Host(`ovms.${DOMAIN}`)
+      - traefik.http.routers.ovms.service=ovms
+      - traefik.http.routers.ovms.entrypoints=websecure
+      - traefik.http.routers.ovms.tls.certresolver=le_dns
+      - traefik.http.services.ovms.loadBalancer.server.url=http://${OVMS_IP}/
+    # Wallpanel Config
+      - traefik.http.routers.wallpanel.rule=Host(`wallpanel.${DOMAIN}`)
+      - traefik.http.routers.wallpanel.service=wallpanel
+      - traefik.http.routers.wallpanel.entrypoints=websecure
+      - traefik.http.routers.wallpanel.tls.certresolver=le_dns
+      - traefik.http.services.wallpanel.loadBalancer.server.url=http://${WALLPANEL_IP}/
+    # Wallpanel2 Config
+      - traefik.http.routers.wallpanel2.rule=Host(`wallpanel2.${DOMAIN}`)
+      - traefik.http.routers.wallpanel2.service=wallpanel2
+      - traefik.http.routers.wallpanel2.entrypoints=websecure
+      - traefik.http.routers.wallpanel2.tls.certresolver=le_dns
+      - traefik.http.services.wallpanel2.loadBalancer.server.url=http://${WALLPANEL2_IP}/
+    # FluidD Config
+      - traefik.http.routers.fluidd.rule=Host(`fluidd.${DOMAIN}`)
+      - traefik.http.routers.fluidd.service=fluidd
+      - traefik.http.routers.fluidd.entrypoints=websecure
+      - traefik.http.routers.fluidd.tls.certresolver=le_dns
+      - traefik.http.services.fluidd.loadBalancer.server.url=http://${FLUIDD_IP}
 
-  whoami:
-    image: "traefik/whoami"
-    container_name: "simple-service"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1024M
+      restart_policy:
+        condition: always
+        delay: 5s
+        window: 120s
+
+  portainer:
+    image: portainer/portainer-ee:lts
+    container_name: portainer
     networks:
       - proxy
+    volumes:
+      - portainer_data:/data
     labels:
+      # Portainer dashboard
       - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule=Host(`whoami.${DOMAIN}`)"
-      - "traefik.http.routers.whoami.entrypoints=websecure"
-      - "traefik.http.routers.whoami.tls.certresolver=le_dns"       
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN}`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.service=portainer"
+      - "traefik.http.routers.portainer.tls.certresolver=le_dns"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1024M
+      restart_policy:
+        condition: always
+        delay: 5s
+        window: 120s
+
+  portainer-agent:
+    container_name: portainer-agent
+    image: portainer/agent:lts
+    ports:
+      - "9001:9001" 
+    volumes:
+      # Mount the host's Docker socket into the container
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount the host's Docker volumes into the container
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
+      # Host management volume mount
+      - /:/host
+    depends_on:
+      - portainer
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1024M
+      restart_policy:
+        condition: always
+        delay: 5s
+        window: 120s
 
 networks:
   proxy:
@@ -66,3 +137,6 @@ networks:
 
 volumes:
   letsencrypt:
+    external: true
+  portainer_data:
+    external: true
