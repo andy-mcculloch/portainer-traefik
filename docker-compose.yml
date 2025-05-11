@@ -9,12 +9,14 @@ services:
       - CF_API_KEY=${CF_API_KEY}
     command:
     # Logs
-      - --log.level=WARN
+      - --log.level=debug
     # Dashboard
       - --api=true
       - --api.dashboard=true
     #Providers
       - --providers.docker
+    #Transport
+      - --serversTransport.insecureSkipVerify=true
     #Entrypoints
       - --entryPoints.web.address=:80
       - --entryPoints.web.http.redirections.entryPoint.to=websecure
@@ -75,7 +77,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: 0.5
           memory: 1024M
       restart_policy:
         condition: always
@@ -91,16 +93,16 @@ services:
       - portainer_data:/data
     labels:
       # Portainer dashboard
-      - "traefik.enable=true"
-      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
-      - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN}`)"
-      - "traefik.http.routers.portainer.entrypoints=websecure"
-      - "traefik.http.routers.portainer.service=portainer"
-      - "traefik.http.routers.portainer.tls.certresolver=le_dns"
+      - traefik.enable=true
+      - traefik.http.services.portainer.loadbalancer.server.port=9000
+      - traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN}`)
+      - traefik.http.routers.portainer.entrypoints=websecure
+      - traefik.http.routers.portainer.service=portainer
+      - traefik.http.routers.portainer.tls.certresolver=le_dns
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: 0.5
           memory: 1024M
       restart_policy:
         condition: always
@@ -111,7 +113,7 @@ services:
     container_name: portainer-agent
     image: portainer/agent:lts
     ports:
-      - "9001:9001" 
+      - 9001:9001
     volumes:
       # Mount the host's Docker socket into the container
       - /var/run/docker.sock:/var/run/docker.sock
@@ -121,10 +123,12 @@ services:
       - /:/host
     depends_on:
       - portainer
+    labels:
+      - traefik.enable=false
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: 0.5
           memory: 1024M
       restart_policy:
         condition: always
