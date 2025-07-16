@@ -2,6 +2,7 @@ name: portainer-traefik
 services:
   traefik:
     container_name: traefik
+    hostname: traefik
     image: traefik:v3.4
     environment:
       - CF_API_EMAIL=${CF_API_EMAIL}
@@ -9,7 +10,7 @@ services:
       - CF_API_KEY=${CF_API_KEY}
     command:
     # Logs
-      - --log.level=debug
+      - --log.level=WARN
     # Dashboard
       - --api=true
       - --api.dashboard=true
@@ -29,13 +30,26 @@ services:
       - --certificatesresolvers.le_dns.acme.dnschallenge.provider=cloudflare
       - --certificatesresolvers.le_dns.acme.dnschallenge.propagation.delayBeforeChecks=120s
     networks:
-      - proxy
+      # system-vlan:
+      user-vlan:
+        ipv4_address: ${USER_VLAN_IP}
+        mac_address: ${USER_VLAN_MAC}
+      iot-vlan:
+        ipv4_address: ${IOT_VLAN_IP}
+        mac_address: ${IOT_VLAN_MAC}
+      proxy-vlan:
+        ipv4_address: ${PROXY_VLAN_IP}
+        mac_address: ${PROXY_VLAN_MAC}
     ports:
       - 80:80
       - 443:443
     volumes:
       - letsencrypt:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    dns:
+      - ${DNS_IP1}
+      - ${DNS_IP2}
+    dns_search: ${DOMAIN}
     labels:
     # proxy dashboard config
       - traefik.enable=true
@@ -72,13 +86,19 @@ services:
       - traefik.http.routers.fluidd.service=fluidd
       - traefik.http.routers.fluidd.entrypoints=websecure
       - traefik.http.routers.fluidd.tls.certresolver=le_dns
-      - traefik.http.services.fluidd.loadBalancer.server.url=http://${FLUIDD_IP}
+      - traefik.http.services.fluidd.loadBalancer.server.url=http://${FLUIDD_IP}/
+    # Frigate Config
+      - traefik.http.routers.frigate.rule=Host(`frigate.${DOMAIN}`)
+      - traefik.http.routers.frigate.service=frigate
+      - traefik.http.routers.frigate.entrypoints=websecure
+      - traefik.http.routers.frigate.tls.certresolver=le_dns
+      - traefik.http.services.frigate.loadBalancer.server.url=https://${FRIGATE_IP}:8971/
 
     deploy:
-      resources:
-        limits:
-          cpus: 0.5
-          memory: 1024M
+      # resources:
+      #   limits:
+      #     cpus: 0.5
+      #     memory: 1024M
       restart_policy:
         condition: always
         delay: 5s
@@ -88,22 +108,30 @@ services:
     image: portainer/portainer-ee:lts
     container_name: portainer
     networks:
-      - proxy
+      portainer:
+      proxy-vlan:
+        ipv4_address: ${PROXY_VLAN_IP2}
+        mac_address: ${PROXY_VLAN_MAC2}
     volumes:
       - portainer_data:/data
+    dns:
+      - ${DNS_IP1}
+      - ${DNS_IP2}
+    dns_search: ${DOMAIN}
     labels:
       # Portainer dashboard
       - traefik.enable=true
+      - traefik.docker.network=proxy-vlan
       - traefik.http.services.portainer.loadbalancer.server.port=9000
       - traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN}`)
       - traefik.http.routers.portainer.entrypoints=websecure
       - traefik.http.routers.portainer.service=portainer
       - traefik.http.routers.portainer.tls.certresolver=le_dns
     deploy:
-      resources:
-        limits:
-          cpus: 0.5
-          memory: 1024M
+      # resources:
+      #   limits:
+      #     cpus: 0.5
+      #     memory: 1024M
       restart_policy:
         condition: always
         delay: 5s
@@ -112,6 +140,8 @@ services:
   portainer-agent:
     container_name: portainer-agent
     image: portainer/agent:lts
+    networks:
+      - portainer
     ports:
       - 9001:9001
     volumes:
@@ -126,17 +156,25 @@ services:
     labels:
       - traefik.enable=false
     deploy:
-      resources:
-        limits:
-          cpus: 0.5
-          memory: 1024M
+      # resources:
+      #   limits:
+      #     cpus: 0.5
+      #     memory: 1024M
       restart_policy:
         condition: always
         delay: 5s
         window: 120s
 
 networks:
-  proxy:
+  portainer:
+    external: false
+  user-vlan:
+    external: true
+  iot-vlan:
+    external: true
+  proxy-vlan:
+    external: true
+  system-vlan:
     external: true
 
 volumes:
